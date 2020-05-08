@@ -1,7 +1,7 @@
 {
-  "name": "student@-admin",
+  "name": "student-admin",
   "version": "1.0.0",
-  "description": "学生管理系统",
+  "description": "这是一个通过Node实现的学员管理系统",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,8 +12,10 @@
     "cookie-session": "^1.4.0",
     "ejs": "^3.1.2",
     "express": "^4.17.1",
+    "format-datetime-sunset": "^1.0.2",
     "formidable": "^1.2.2",
     "md5-node": "^1.0.1",
-    "mongoose": "^5.9.10"
+    "mongoose": "^5.9.10",
+    "node-xlsx": "^0.15.0"
   }
 }

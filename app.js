@@ -2,11 +2,12 @@
 const express = require('express'),
       //mongoose内依赖自动有mongodb,所以不需要再次安装或引入mongodb
       mongoose = require('mongoose'),
-      cookieSession = require('cookie-session');
+      cookieSession = require('cookie-session'),
+      router = require('./route');
 
 //链接数据库
-mongoose.connect('mongodb://localhost/stu',{useUnifiedTopolpgy:true,useNewUrlParser:true});
-
+// mongoose.connect('mongodb://localhost/stu',{useUnifiedTopolpgy:true,useNewUrlParser:true});
+mongoose.connect('mongodb://localhost/stu',{useNewUrlParser:true,useUnifiedTopology:true});
 //起服务
 let app = express();
 //设置模板引擎
@@ -17,11 +18,12 @@ app.use(cookieSession({
     keys:['key1'],
     maxAge: 30 * 60 * 1000 // 30min
 }))
-//路由清单:
-// app.get();
 
 //处理静态资源请求:
 app.use(express.static('public'));
+
+//处理路由清单:
+app.use('/',router);
 
 //监听端口
 app.listen(3000);

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!--[if IE]>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <![endif]-->
+    <title>学生信息</title>
+    <!-- BOOTSTRAP CORE STYLE  -->
+    <link href="/css/bootstrap.css" rel="stylesheet">
+    <!-- FONT AWESOME ICONS  -->
+    <link href="/css/font-awesome.css" rel="stylesheet">
+    <!-- CUSTOM STYLE  -->
+    <link href="/css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/pager.css">
+    <!-- HTML5 Shiv and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+   <!--  -：不转义输出,不会转义html标签 =：转义输出,会把html标签转为&gt; -->
+    <%- include('./header.ejs',{idx:'index'}) %>
+    <ul class="breadcrumb">
+        <li><a href="#">Home</a></li>
+        <li><a href="#"><%= new Date().getFullYear() %></a></li>
+        <li class="active">学生管理</li>
+    </ul>
+  
+    <!-- MENU SECTION END-->
+    <div class="content-wrapper">
+        <div class="container">
+            <div class="row pull-right" style='width:40%;'>
+                <div class="input-group">
+                    <input type="text" class="form-control search" list="dataList" placeholder="请输入学生姓名">
+                    <datalist id="dataList">
+
+                    </datalist>
+                    <span class="input-group-addon" id='search' style='cursor:pointer;user-select:none;'>搜索</span>
+                    <input type="button" class="btn  btn-success form-control exportExcel" value="导出为Excel">
+                </div>
+                <iframe id='exportExcel' width="0" height="0" src="" frameborder="0"></iframe>
+            </div>
+
+            <table class="table">
+                <caption>学员列表</caption>
+                <thead>
+                  <tr>
+                    <th>学号</th>
+                    <th>名字</th>
+                    <th>性别</th>
+                    <th>年龄</th>
+                    <th>[操作]</th>
+                  </tr>
+                </thead>
+                <tbody class='studentList'>
+                    <!-- 获取某一个学生的数据 -->
+                </tbody>
+            </table>
+
+            <div id="wrap">
+                <!-- 分页区 -->
+            </div>
+        </div>
+    </div>
+   
+    <!-- CONTENT-WRAPPER SECTION END-->
+    <%- include('./footer.ejs') %>
+  
+   
+</body>
+<!-- FOOTER SECTION END-->
+<!-- JAVASCRIPT AT THE BOTTOM TO REDUCE THE LOADING TIME  -->
+<!-- CORE JQUERY SCRIPTS -->
+
+<script src="/js/jquery-1.11.1.js"></script>
+<script src="/js/pagination.js"></script>
+<!-- BOOTSTRAP SCRIPTS  -->
+<script src="/js/bootstrap.js"></script>
+<script>
+    $(function(){
+        new StudentList();//实例对象
+    })
+    function StudentList(){//构造函数
+        this.page = 1;
+        this.init();
+        this.bindEvent();
+    }
+    StudentList.prototype.init = function(){
+        var _this = this;
+        $.get('/student/msg',{page:this.page},function(res){
+            // console.log(res);
+            _this.renderDom(res);
+        })
+    }
+    StudentList.prototype.renderDom = function(data){
+        var _this = this;
+        if( data.results.length > 0 ){
+            $('.studentList').empty();
+            //渲染DOM
+            $.each(data.results,function(idx,item){
+                var tr = $('<tr></tr>');
+                tr.html(`
+                    <td>${item.sid}</td>
+                    <td contenteditable="true">${item.name}</td>
+                    <td contenteditable="true">${item.sex}</td>
+                    <td contenteditable="true">${item.age}</td>
+                    <td>
+                        <input type="button" value="删除" class='btn btn-warning del' data-sid='${item.sid}'>
+                        <input type="button" value="修改" class='btn btn-info change' data-sid='${item.sid}'>
+                    </td>
+                `);
+                tr.appendTo($('.studentList'));
+            });
+            //渲染分页
+            pagination.init({
+            wrapid: 'wrap', //页面显示分页器ID
+            total: data.count, //总数据条数
+            pagesize: 4, //每页3条数据
+            currentPage: _this.page, //当前页
+            onPagechange: function (n) {
+                //页面改变时触发， 参数 n 为改变后的当前页数
+                // console.log(n);
+                _this.page = n;
+                _this.init();
+            }
+        })
+        }else{
+            //本页数据为0
+            if( _this.page > 1 ){
+                _this.page -= 1;
+                _this.init();
+            }else{
+                $('#wrap').empty();
+                $('.studentList').html('暂无数据');
+            }
+        }
+    }
+    StudentList.prototype.bindEvent = function (){
+        var _this = this;
+        //通过学生姓名模糊搜索
+        $('.search').on('input',this.searchStudent.bind(this));
+        //跳转新窗口渲染学生数据
+        $(".search").on('keydown',function (e){
+            if( e.keyCode == 13 ){
+                console.log('回车');
+                _this.searchData.results && _this.renderDom(_this.searchData);
+            }
+        })
+        $('#search').on('click',function(){
+            _this.searchData.results && _this.renderDom(_this.searchData);
+        })
+
+        //修改学生信息:
+        $('.studentList').delegate('.change','click',function(){
+            var sid = $(this).attr('data-sid');
+            var childrens = $(this).parent().parent().children();
+            var uname = childrens.eq(1).text();
+            var sex = childrens.eq(2).text();
+            var age = parseInt(childrens.eq(3).text());
+            console.log(sid,uname,age,sex);
+
+            if( sex != '女' && sex != '男' ){
+                alert('请输入正确的性别');
+                return;
+            }
+            if(isNaN(age) ){
+                alert('请输入数字的年龄');
+                return;
+            }
+            $.post('/student/'+sid,{uname,sex,age},function(res){
+                console.log(res);
+                if( res.error == 1) {
+                    alert('修改成功');
+                }else{
+                    alert('修改失败');
+                }
+            })
+        })
+        //删除学生信息:
+        $('.studentList').delegate('.del','click',function(){
+            var sid= $(this).attr('data-sid');
+            var _confirm = confirm('确认删除?');
+            if( _confirm ){
+                $.ajax({
+                    url : '/student/'+sid,
+                    type:'delete',
+                    success (res){
+                        console.log(res);
+                        if( !res.error ){
+                            alert(res.msg);
+                            _this.init();
+                        }else{
+                            alert(res.msg);
+                        }
+                    }
+                })
+            }
+        });   
+
+        //导出excel 格式为xlsx
+        $('.exportExcel').on('click',function(){
+            var _confirm = confirm('确定导出所有学生数据');
+            if( !_confirm )return;
+            $.get('/student/exportExcel',function(res){
+                console.log(res);
+                if(res.error){
+                    window.location = window.location + '/excel/' + res.msg;
+                }
+            });
+        })
+    }
+     //通过学生姓名进行模糊搜索
+    StudentList.prototype.searchStudent = function (){
+        var _this = this;
+        var val = $('.search').val();
+        if( !val ){
+
+            this.init();
+            _this.searchData = {};
+            return;
+        };
+       
+        $.get('/student/search',{search:val},function(res){
+            console.log(res);
+            $('#dataList').empty();
+            if( res.data.length > 0 ){
+                //设置全局搜索数据格式
+               
+                $.each(res.data,function (idx,item){
+                    var option = $('<option></option>');
+                    option.val(item.name);
+                    option.text(item.name);
+                    option.appendTo($('#dataList'));
+                })
+                _this.searchData = {
+                    count :res.data.length,
+                    now : 1,
+                    results :res.data
+                }
+            }
+        })
+    }
+</script>
+</html>
